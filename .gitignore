@@ -1,55 +1,28 @@
-# Prerequisites
-*.d
+# Build outputs
+server/build/
+client/build/
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+# STM32CubeIDE workspace files
+**/.settings/
+**/.launches/
+**/Debug/
+**/Release/
 
-# Linker output
-*.ilk
-*.map
-*.exp
+# Object and dependency files
+**/*.o
+**/*.d
+**/*.su
+**/*.lst
 
-# Precompiled Headers
-*.gch
-*.pch
+# Binary outputs (keep .elf/.bin/.hex only if committed intentionally)
+**/*.bin
+**/*.hex
+**/*.elf
+**/*.map
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
+# macOS
+.DS_Store
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
-*.dwo
+# IDE
+*.swp
+*.swo
