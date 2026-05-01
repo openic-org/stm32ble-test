@@ -1291,8 +1291,8 @@ static void Connection_Update( void )
   APP_DBG_MSG("  ** CONNECTION UPDATE **\n");
 
   result = aci_gap_start_connection_update(bleAppContext.BleApplicationContext_legacy.connectionHandle,
-                                           CONN_INT_MS(50),
-                                           CONN_INT_MS(50),
+                                           CONN_INT_MS(7.5),
+                                           CONN_INT_MS(7.5),
                                            0, 0x3e8, 0x0000, 0x0280);
   if (result != BLE_STATUS_SUCCESS)
   {

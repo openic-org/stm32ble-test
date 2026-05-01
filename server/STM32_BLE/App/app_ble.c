@@ -1285,16 +1285,9 @@ static void gap_cmd_resp_wait(void)
 
 static void LinkConfiguration(void)
 {
-  tBleStatus status; 
+  tBleStatus status;
 
-  /**
-   * The client will start ATT configuration after the link is fully configured
-   * Setup PHY
-   * Setup Data Length
-   * Setup Pairing
-   */
-
-  status = hci_le_set_data_length(bleAppContext.BleApplicationContext_legacy.connectionHandle,251,2120);
+  status = hci_le_set_data_length(bleAppContext.BleApplicationContext_legacy.connectionHandle, 251, 2120);
   if (status != BLE_STATUS_SUCCESS)
   {
     APP_DBG_MSG("  Fail   : set data length command   : error code: 0x%02X\n", status);
@@ -1304,34 +1297,35 @@ static void LinkConfiguration(void)
     APP_DBG_MSG("  Success: set data length command\n");
   }
 
+#if (CFG_BLE_CONTROLLER_2M_CODED_PHY_ENABLED == 1)
+  APP_DBG_MSG("  Request 2M PHY\n");
+  status = hci_le_set_phy(bleAppContext.BleApplicationContext_legacy.connectionHandle, 0,
+                          HCI_TX_PHYS_LE_2M_PREF, HCI_RX_PHYS_LE_2M_PREF, 0);
+  if (status != BLE_STATUS_SUCCESS)
+  {
+    APP_DBG_MSG("  Fail   : hci_le_set_phy 2M: error code: 0x%02X\n", status);
+  }
+  else
+  {
+    APP_DBG_MSG("  Success: hci_le_set_phy 2M requested\n");
+    gap_cmd_resp_wait(); /* wait for HCI_LE_PHY_UPDATE_COMPLETE_SUBEVT_CODE */
+  }
+#endif
+
+  UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_INTERV_UPDATE_ID, CFG_SEQ_PRIO_0);
+
   return;
 }
 
 void BLE_SVC_L2CAP_Conn_Update(void)
 {
   tBleStatus ret;
-  uint32_t paramA, paramB, paramC, paramD;
-  paramC = 0x0000;
-  paramD = 0x01F4;
-  
-  if (bleAppContext.connIntervalFlag != 0)
-  {
-    bleAppContext.connIntervalFlag = 0;
-    paramA = CONN_INT_MS(11.25);
-    paramB = CONN_INT_MS(11.25);
-  }
-  else
-  {
-    bleAppContext.connIntervalFlag = 1;
-    paramA = CONN_INT_MS(26.25);
-    paramB = CONN_INT_MS(26.25);
-  }
-    
+
   ret = aci_l2cap_connection_parameter_update_req(bleAppContext.BleApplicationContext_legacy.connectionHandle,
-                                                     paramA,
-                                                     paramB,
-                                                     paramC,
-                                                     paramD);
+                                                  CONN_INT_MS(7.5),
+                                                  CONN_INT_MS(7.5),
+                                                  0x0000,
+                                                  0x01F4);
   if (ret != BLE_STATUS_SUCCESS)
   {
     APP_DBG_MSG("  Fail   : BLE_SVC_L2CAP_Conn_Update() 0x%02X\n", ret);

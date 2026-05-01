@@ -57,7 +57,7 @@
 /**
  * Define IO Authentication
  */
-#define CFG_BONDING_MODE                    (1)
+#define CFG_BONDING_MODE                    (0)
 #define CFG_FIXED_PIN                       (111111)
 #define CFG_ENCRYPTION_KEY_SIZE_MAX         (16)
 #define CFG_ENCRYPTION_KEY_SIZE_MIN         (8)
@@ -355,7 +355,7 @@
 
 #define CFG_FULL_LOW_POWER       (0)
 
-#define CFG_LPM_SUPPORTED        (1)
+#define CFG_LPM_SUPPORTED        (0)
 
 #define CFG_LPM_EMULATED         (0)
 
