@@ -24,9 +24,8 @@ else
 OPT := -Os
 endif
 
-# Phase 2: NUCLEO_WB09KE will be replaced with CUSTOM_WB09TE and BSP removed
 DEFS := \
-  -DNUCLEO_WB09KE \
+  -DCUSTOM_WB09TE \
   -DUSE_FULL_LL_DRIVER \
   -DUSE_HAL_DRIVER \
   -DSTM32WB09
@@ -69,7 +68,6 @@ C_SOURCES := \
   $(CUBE_DRV_ROOT)/Utilities/lpm/tiny_lpm/stm32_lpm.c \
   $(CUBE_DRV_ROOT)/Utilities/misc/stm32_mem.c \
   $(CUBE_DRV_ROOT)/Utilities/sequencer/stm32_seq.c \
-  $(CUBE_DRV_ROOT)/Drivers/BSP/STM32WB0x-nucleo/stm32wb0x_nucleo.c \
   $(CUBE_PROJECTS)/Common/BLE/Interfaces/cryptolib_hw_aes.c \
   $(CUBE_PROJECTS)/Common/BLE/Interfaces/hw_aes.c \
   $(CUBE_PROJECTS)/Common/BLE/Interfaces/hw_pka.c \
@@ -128,8 +126,7 @@ INCLUDES := \
   -I$(CUBE_MW_ROOT)/Middlewares/ST/STM32_BLE/evt_handler/inc \
   -I$(CUBE_MW_ROOT)/Middlewares/ST/STM32_BLE/queued_writes/inc \
   -I$(CUBE_MW_ROOT)/Middlewares/ST/STM32_BLE/stack/include \
-  -I$(CUBE_DRV_ROOT)/Drivers/CMSIS/Include \
-  -I$(CUBE_DRV_ROOT)/Drivers/BSP/STM32WB0x-nucleo
+  -I$(CUBE_DRV_ROOT)/Drivers/CMSIS/Include
 
 LDSCRIPT := STM32CubeIDE/STM32WB09KEVX_FLASH.ld
 

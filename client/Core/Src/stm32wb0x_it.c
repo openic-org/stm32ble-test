@@ -64,7 +64,6 @@
 
 /* External variables --------------------------------------------------------*/
 extern PKA_HandleTypeDef hpka;
-extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -254,14 +253,5 @@ void RADIO_RRM_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-void GPIOA_IRQHandler(void)
-{
-  BSP_PB_IRQHandler(B1_GPIO_PORT, B1_PIN);
-}
 
-void GPIOB_IRQHandler(void)
-{
-  BSP_PB_IRQHandler(B2_GPIO_PORT, B2_PIN);
-  BSP_PB_IRQHandler(B3_GPIO_PORT, B3_PIN);
-}
 /* USER CODE END 1 */

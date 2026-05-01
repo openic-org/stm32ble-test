@@ -476,7 +476,10 @@ uint8_t gatt_procedure(uint8_t index, ProcGattId_t GattProcId)
           gatt_cmd_resp_wait();
           APP_DBG_MSG(" DTThroughputDescHdl =0x%04X\n",a_ClientContext[index].DTThroughputDescHdl);
         }
-        UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_UPDATE_ID, CFG_SEQ_PRIO_0);        
+        UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_UPDATE_ID, CFG_SEQ_PRIO_0);
+        /* Auto-start TX — no button on custom board */
+        DTC_Context.ButtonTransferReq = DTC_APP_TRANSFER_REQ_ON;
+        UTIL_SEQ_SetTask(1U << CFG_TASK_WRITE_DATA_WO_RESP_ID, CFG_SEQ_PRIO_1);
         /* USER CODE END PROC_GATT_ENABLE_ALL_NOTIFICATIONS */
 
         if (result == BLE_STATUS_SUCCESS)
@@ -1126,18 +1129,16 @@ void DTC_Button1TriggerReceived( void )
   {
     if(DTC_Context.ButtonTransferReq != DTC_APP_TRANSFER_REQ_OFF)
     {
-      BSP_LED_Off(LED_BLUE);
       DTC_Context.ButtonTransferReq = DTC_APP_TRANSFER_REQ_OFF;
     }
     else
     {
-      BSP_LED_On(LED_BLUE);
       DTC_Context.ButtonTransferReq = DTC_APP_TRANSFER_REQ_ON;
       UTIL_SEQ_SetTask(1U << CFG_TASK_WRITE_DATA_WO_RESP_ID, CFG_SEQ_PRIO_1);
     }
   }
   BLEStack_Process_Schedule();
-  
+
   return;
 }
 

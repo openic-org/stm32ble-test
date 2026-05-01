@@ -506,8 +506,8 @@ typedef enum
  * When CFG_BUTTON_SUPPORTED is set, the push button are activated if requested
  */
 
-#define CFG_LED_SUPPORTED                       (1)
-#define CFG_BUTTON_SUPPORTED                    (1)
+#define CFG_LED_SUPPORTED                       (0)
+#define CFG_BUTTON_SUPPORTED                    (0)
 
 /**
  * If CFG_FULL_LOW_POWER is requested, make sure LED and debugger are disabled

@@ -499,20 +499,6 @@ void APP_BLE_Init(void)
 {
   /* USER CODE BEGIN APP_BLE_Init_1 */
 
-#if (CFG_DEBUG_APP_TRACE==0)
-  /* NOTE: Init BSP COM in order to use the DT_INFO_MSG macro for display only throughput  data \
-     on dt_serv_app.c, BLE_App_Delay_DataThroughput(). */
-  COM_InitTypeDef COM_Init = 
-  {
-   .BaudRate = 115200,
-   .WordLength= COM_WORDLENGTH_8B,
-   .StopBits = COM_STOPBITS_1,
-   .Parity = COM_PARITY_NONE,
-   .HwFlowCtl = COM_HWCONTROL_NONE
-  };
-  BSP_COM_Init(COM1, &COM_Init);
-#endif
-
   /* USER CODE END APP_BLE_Init_1 */
   UTIL_SEQ_RegTask(1U << CFG_TASK_BLE_STACK, UTIL_SEQ_RFU, BLEStack_Process);
   UTIL_SEQ_RegTask(1U << CFG_TASK_VTIMER, UTIL_SEQ_RFU, VTimer_Process);
@@ -530,10 +516,13 @@ void APP_BLE_Init(void)
   /* USER CODE BEGIN APP_BLE_Init_2 */
   bleAppContext.Device_Connection_Status = APP_BLE_IDLE;
   bleAppContext.BleApplicationContext_legacy.connectionHandle = 0xFFFF;
-  
+
   UTIL_SEQ_RegTask(1U << CFG_TASK_START_SCAN_ID, UTIL_SEQ_RFU, Scan_Request);
   UTIL_SEQ_RegTask(1U << CFG_TASK_CONN_DEV_1_ID, UTIL_SEQ_RFU, Connect_Request);
-  UTIL_SEQ_RegTask(1U << CFG_TASK_CONN_UPDATE_ID, UTIL_SEQ_RFU, Connection_Update);  
+  UTIL_SEQ_RegTask(1U << CFG_TASK_CONN_UPDATE_ID, UTIL_SEQ_RFU, Connection_Update);
+
+  /* Auto-scan on boot — no buttons on custom board */
+  UTIL_SEQ_SetTask(1U << CFG_TASK_START_SCAN_ID, CFG_SEQ_PRIO_0);
   /* USER CODE END APP_BLE_Init_2 */
 
   return;
@@ -592,7 +581,8 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
                     p_disconnection_complete_event->Reason);
 
         /* USER CODE BEGIN EVT_DISCONN_COMPLETE_2 */
-
+        DTC_Context.ButtonTransferReq = DTC_APP_TRANSFER_REQ_OFF;
+        UTIL_SEQ_SetTask(1U << CFG_TASK_START_SCAN_ID, CFG_SEQ_PRIO_0);
         /* USER CODE END EVT_DISCONN_COMPLETE_2 */
       }
       gap_cmd_resp_release();
@@ -786,7 +776,6 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
             {
               APP_DBG_MSG("-- GAP_GENERAL_DISCOVERY_PROC completed\n");
               UTIL_SEQ_SetTask(1u << CFG_TASK_CONN_DEV_1_ID, CFG_SEQ_PRIO_0);
-              BSP_LED_Off(LED_BLUE);
             }
           /* USER CODE END EVT_GAP_PROCEDURE_COMPLETE */
         }
@@ -1250,17 +1239,15 @@ static void Connect_Request(void)
       }  
       result = aci_gap_create_connection(LE_1M_PHY_BIT,
                                          bleAppContext.deviceServerBdAddrType,
-                                         &bleAppContext.a_deviceServerBdAddr[0]);    
+                                         &bleAppContext.a_deviceServerBdAddr[0]);
       if (result == BLE_STATUS_SUCCESS)
       {
         bleAppContext.Device_Connection_Status = APP_BLE_LP_CONNECTING;
-        APP_DBG_MSG("  wait for event HCI_LE_CONNECTION_COMPLETE_SUBEVT_CODE\n");
-        UTIL_SEQ_WaitEvt(1u << CFG_IDLEEVT_CONNECTION_COMPLETE);
+        APP_DBG_MSG("  connecting to DT server...\n");
       }
       else
       {
         APP_DBG_MSG("==>> GAP Create connection Failed , result: 0x%02x\n", result);
-        BSP_LED_On(LED_RED);
         bleAppContext.Device_Connection_Status = APP_BLE_IDLE;
       }
     }
@@ -1271,11 +1258,9 @@ static void Connect_Request(void)
 static void Scan_Request(void)
 {
   tBleStatus result;
-  
+
   if (bleAppContext.Device_Connection_Status != APP_BLE_CONNECTED_CLIENT)
   {
-    BSP_LED_On(LED_BLUE);
-    
     result = aci_gap_set_scan_configuration(DUPLICATE_FILTER_ENABLED, 0x00, LE_1M_PHY_BIT, HCI_SCAN_TYPE_PASSIVE, SCAN_INT_MS(500u), SCAN_WIN_MS(500u));
     if (result != BLE_STATUS_SUCCESS)
     {
@@ -1285,16 +1270,14 @@ static void Scan_Request(void)
     {
       APP_DBG_MSG("==>> aci_gap_set_scan_configuration - Success\n");
     }
-    
-    result = aci_gap_start_procedure (GAP_GENERAL_DISCOVERY_PROC,LE_1M_PHY_BIT,0,0);
 
+    result = aci_gap_start_procedure(GAP_GENERAL_DISCOVERY_PROC, LE_1M_PHY_BIT, 0, 0);
     if (result == BLE_STATUS_SUCCESS)
     {
       APP_DBG_MSG("  ** START GENERAL DISCOVERY (SCAN) **\n");
     }
     else
     {
-      BSP_LED_On(LED_RED);
       APP_DBG_MSG("-- BLE_App_Start_Limited_Disc_Req, Failed 0x%02X\n", result);
     }
   }
@@ -1306,14 +1289,14 @@ static void Connection_Update( void )
 {
   tBleStatus result;
   APP_DBG_MSG("  ** CONNECTION UPDATE **\n");
-  
+
   result = aci_gap_start_connection_update(bleAppContext.BleApplicationContext_legacy.connectionHandle,
-                                           CONN_INT_MS(50), 
-                                           CONN_INT_MS(50), 
+                                           CONN_INT_MS(50),
+                                           CONN_INT_MS(50),
                                            0, 0x3e8, 0x0000, 0x0280);
   if (result != BLE_STATUS_SUCCESS)
   {
-    BSP_LED_On(LED_RED);
+    APP_DBG_MSG("aci_gap_start_connection_update Failed , result: 0x%02x\n", result);
   }
 
   return;

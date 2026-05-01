@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stm32wb0x_ll_usart.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -42,6 +43,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 PKA_HandleTypeDef hpka;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
@@ -54,6 +56,7 @@ static void MX_GPIO_Init(void);
 static void MX_RADIO_Init(void);
 static void MX_RADIO_TIMER_Init(void);
 static void MX_PKA_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -98,6 +101,7 @@ int main(void)
   MX_RADIO_Init();
   MX_RADIO_TIMER_Init();
   MX_PKA_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -291,6 +295,30 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+static void MX_USART1_UART_Init(void)
+{
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+int __io_putchar(int ch)
+{
+  while (!LL_USART_IsActiveFlag_TXE(USART1));
+  LL_USART_TransmitData8(USART1, (uint8_t)ch);
+  return ch;
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
