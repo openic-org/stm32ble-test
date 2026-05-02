@@ -612,9 +612,9 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
                       p_conn_update_complete->Supervision_Timeout*10);
           UNUSED(p_conn_update_complete);
           /* USER CODE BEGIN EVT_LE_CONN_UPDATE_COMPLETE */
-#if (CFG_DEBUG_APP_TRACE==0)
-          DT_INFO_MSG(">>== HCI_LE_CONNECTION_UPDATE_COMPLETE_SUBEVT_CODE\n");
-#endif  
+          DT_INFO_MSG("CONN UPDATE: interval=%d.%02d ms\n",
+                      (int)(p_conn_update_complete->Connection_Interval * 125 / 100),
+                      (int)(p_conn_update_complete->Connection_Interval * 125 % 100));
           /* USER CODE END EVT_LE_CONN_UPDATE_COMPLETE */
         }
         break;
@@ -632,11 +632,15 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
             APP_DBG_MSG(">>== UPDATE PHY COMPLETE SUCCESS \n");
             APP_DBG_MSG(">>== TX PHY =  %d RX_PHY =  %d ", p_le_phy_update_complete->TX_PHY, p_le_phy_update_complete->RX_PHY);
             APP_DBG_MSG("\r\n\r");
+            DT_INFO_MSG("PHY UPDATE OK: TX=%d RX=%d\n",
+                        p_le_phy_update_complete->TX_PHY,
+                        p_le_phy_update_complete->RX_PHY);
           }
           else
           {
             APP_DBG_MSG(">>== UPDATE PHY COMPLETE FAILED %d \n", p_le_phy_update_complete->Status);
-          }           
+            DT_INFO_MSG("PHY UPDATE FAILED: status=0x%02X\n", p_le_phy_update_complete->Status);
+          }
           /* USER CODE END EVT_LE_PHY_UPDATE_COMPLETE */
         }
         break;
@@ -707,12 +711,19 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
         }
         break;
       /* USER CODE BEGIN EVT_LE_META_EVENT_1 */
-
+      case HCI_LE_DATA_LENGTH_CHANGE_SUBEVT_CODE:
+        {
+          hci_le_data_length_change_event_rp0 *p_dle;
+          p_dle = (hci_le_data_length_change_event_rp0 *) p_meta_evt->data;
+          DT_INFO_MSG("DLE UPDATE: MaxTxOctets=%d MaxRxOctets=%d\n",
+                      p_dle->MaxTxOctets, p_dle->MaxRxOctets);
+        }
+        break;
       /* USER CODE END EVT_LE_META_EVENT_1 */
 
       default:
         /* USER CODE BEGIN SUBEVENT_DEFAULT */
-        
+
         /* USER CODE END SUBEVENT_DEFAULT */
         break;
       }

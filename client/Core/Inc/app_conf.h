@@ -147,7 +147,7 @@
  * Number of extra memory blocks, in addition to the minimum required for the
  * supported links.
  */
-#define CFG_BLE_MBLOCK_COUNT_MARGIN                     (32)
+#define CFG_BLE_MBLOCK_COUNT_MARGIN                     (36)
 
 /**
  * Maximum number of simultaneous EATT active channels. It must be less than or
@@ -257,7 +257,7 @@
  * Size of the internal FIFO used for non-critical controller events produced by
  * the ISR (e.g. advertising or IQ sampling reports).
  */
-#define CFG_BLE_ISR1_FIFO_SIZE                          (768)
+#define CFG_BLE_ISR1_FIFO_SIZE                          (512)
 
 /**
  * Size of the internal FIFO used for controller and host events produced

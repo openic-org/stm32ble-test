@@ -104,10 +104,10 @@ Output format: structured single-line UART log for easy parsing/graphing.
 | Phase | Status |
 |-------|--------|
 | 1 — Scaffold | **Complete** |
-| 2 — Client adaptation | Pending |
-| 3 — Throughput optimizations | Pending |
+| 2 — Client adaptation | **Complete** |
+| 3 — Throughput optimizations | **Complete** |
 | 4 — Makefile build system | **Complete** |
-| 5 — Measurement improvements | Pending |
+| 5 — Measurement improvements | Not pursued — throughput ceiling reached |
 
 ## Notes
 

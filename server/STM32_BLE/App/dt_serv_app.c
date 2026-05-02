@@ -423,40 +423,42 @@ static void DataThroughput_proc(void *arg){
 
 static void SendData( void )
 {
-  tBleStatus status = BLE_STATUS_INVALID_PARAMS;
+  tBleStatus status;
   uint8_t crc_result;
+  static uint32_t send_call_count = 0;
+  uint32_t iter = 0;
 
-  if((DTS_Context.connectionstatus == APP_BLE_CONNECTED_SERVER)
+  while ((DTS_Context.connectionstatus == APP_BLE_CONNECTED_SERVER)
       && (DTS_Context.ButtonTransferReq != DTS_APP_TRANSFER_REQ_OFF)
       && (DTS_Context.NotificationTransferReq != DTS_APP_TRANSFER_REQ_OFF)
-      && (DTS_Context.DtFlowStatus != DTS_APP_FLOW_OFF) )
-  {   
-    /*Data Packet to send to remote*/
+      && (DTS_Context.DtFlowStatus != DTS_APP_FLOW_OFF))
+  {
     Notification_Data_Buffer[0] += 1;
-    /* compute CRC */
     crc_result = APP_BLE_ComputeCRC8((uint8_t*) Notification_Data_Buffer, (MTUSizeValue - 1));
     Notification_Data_Buffer[MTUSizeValue - 1] = crc_result;
 
     DTS_Context.TxData.p_Payload = Notification_Data_Buffer;
-    DTS_Context.TxData.Length =  MTUSizeValue;
+    DTS_Context.TxData.Length = MTUSizeValue;
 
     status = DT_SERV_UpdateValue(DT_SERV_TX_CHAR, (DT_SERV_Data_t *) &DTS_Context.TxData);
     status = DT_SERV_NotifyValue(DT_SERV_TX_CHAR, (DT_SERV_Data_t *) &DTS_Context.TxData, DT_SERV_APP_Context.ConnectionHandle);
-    
+
     if (status == BLE_STATUS_INSUFFICIENT_RESOURCES)
     {
       DTS_Context.DtFlowStatus = DTS_APP_FLOW_OFF;
       (Notification_Data_Buffer[0])-=1;
+      break;
     }
-    else
-    {
-      BLEStack_Process_Schedule();
-      /* Reschedule task to send data. Priority must be lower than or equal to BLEStack_Process()
-         to avoid taking all the CPU time. */
-      UTIL_SEQ_SetTask(1 << CFG_TASK_DATA_TRANSFER_UPDATE_ID, CFG_SEQ_PRIO_1);
-    }
+    iter++;
   }
 
+  send_call_count++;
+  if (send_call_count <= 10)
+  {
+    DT_INFO_MSG("SendData call=%lu queued=%lu\n", send_call_count, iter);
+  }
+
+  BLEStack_Process_Schedule();
   return;
 }
 

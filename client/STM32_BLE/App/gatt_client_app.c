@@ -593,10 +593,12 @@ static BLEEVT_EvtAckStatus_t P2P_CLIENT_EventHandler(aci_blecore_event *p_evt)
           if (status != BLE_STATUS_SUCCESS)
           {
             APP_DBG_MSG("  Fail   : set data length command   : error code: 0x%x \n\r", status);
+            DT_INFO_MSG("DLE CMD FAILED: 0x%02X\n", status);
           }
           else
           {
             APP_DBG_MSG("  Success: set data length command  \n\r");
+            DT_INFO_MSG("DLE CMD OK\n");
           }    
     /* USER CODE END ACI_ATT_EXCHANGE_MTU_RESP_VSEVT_CODE */
     }
@@ -1173,41 +1175,34 @@ void DTC_Button3TriggerReceived( void )
 
 static void SendDataWrite( void )
 {
-  tBleStatus status = BLE_STATUS_INVALID_PARAMS;
+  tBleStatus status;
   uint8_t crc_result;
 
-  if( (DTC_Context.ButtonTransferReq != DTC_APP_TRANSFER_REQ_OFF) && 
-      (DTC_Context.DtFlowStatus != DTC_APP_FLOW_OFF) )
-  {   
-    /*Data Packet to send to remote*/
+  while ((DTC_Context.ButtonTransferReq != DTC_APP_TRANSFER_REQ_OFF) &&
+         (DTC_Context.DtFlowStatus != DTC_APP_FLOW_OFF))
+  {
     Notification_Data_Buffer[0] += 1;
-    /* compute CRC */
     crc_result = APP_BLE_ComputeCRC8((uint8_t*) Notification_Data_Buffer, (a_ClientContext[0].MTUSizeValue - 1));
     Notification_Data_Buffer[a_ClientContext[0].MTUSizeValue - 1] = crc_result;
 
     DTC_Context.TxData.pPayload = Notification_Data_Buffer;
-    DTC_Context.TxData.Length =  a_ClientContext[0].MTUSizeValue;
+    DTC_Context.TxData.Length = a_ClientContext[0].MTUSizeValue;
 
-    status = aci_gatt_clt_write_without_resp(a_ClientContext[0].connHdl,                                          
-                                             BLE_GATT_UNENHANCED_ATT_L2CAP_CID,   
+    status = aci_gatt_clt_write_without_resp(a_ClientContext[0].connHdl,
+                                             BLE_GATT_UNENHANCED_ATT_L2CAP_CID,
                                              a_ClientContext[0].DTRXValueHdle,
                                              a_ClientContext[0].MTUSizeValue,
                                              (uint8_t*)(DTC_Context.TxData.pPayload));
-    
+
     if (status == BLE_STATUS_INSUFFICIENT_RESOURCES)
     {
       DTC_Context.DtFlowStatus = DTC_APP_FLOW_OFF;
       (Notification_Data_Buffer[0])-=1;
-    }
-    else
-    {
-      BLEStack_Process_Schedule();
-      /* Reschedule task to send data. Priority must be lower than or equal to BLEStack_Process()
-         to avoid taking all the CPU time. */
-      UTIL_SEQ_SetTask(1U << CFG_TASK_WRITE_DATA_WO_RESP_ID, CFG_SEQ_PRIO_1);
+      break;
     }
   }
 
+  BLEStack_Process_Schedule();
   return;
 }
 

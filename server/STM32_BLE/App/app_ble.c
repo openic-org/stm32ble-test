@@ -654,9 +654,9 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
                       p_conn_update_complete->Supervision_Timeout*10);
           UNUSED(p_conn_update_complete);
           /* USER CODE BEGIN EVT_LE_CONN_UPDATE_COMPLETE */
-#if (CFG_DEBUG_APP_TRACE==0)
-          DT_INFO_MSG(">>== HCI_LE_CONNECTION_UPDATE_COMPLETE_SUBEVT_CODE\n");
-#endif           
+          DT_INFO_MSG("CONN UPDATE: interval=%d.%02d ms\n",
+                      (int)(p_conn_update_complete->Connection_Interval * 125 / 100),
+                      (int)((p_conn_update_complete->Connection_Interval * 125 % 100)));
           /* USER CODE END EVT_LE_CONN_UPDATE_COMPLETE */
         }
         break;
@@ -674,11 +674,17 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
             APP_DBG_MSG(">>== UPDATE PHY COMPLETE SUCCESS \n");
             APP_DBG_MSG(">>== TX PHY =  %d RX_PHY =  %d ", p_le_phy_update_complete->TX_PHY, p_le_phy_update_complete->RX_PHY);
             APP_DBG_MSG("\r\n\r");
+            DT_INFO_MSG("PHY UPDATE OK: TX=%d RX=%d\n",
+                        p_le_phy_update_complete->TX_PHY,
+                        p_le_phy_update_complete->RX_PHY);
           }
           else
           {
             APP_DBG_MSG(">>== UPDATE PHY COMPLETE FAILED %d \n", p_le_phy_update_complete->Status);
+            DT_INFO_MSG("PHY UPDATE FAILED: status=0x%02X\n", p_le_phy_update_complete->Status);
           }
+          /* Step 3: PHY negotiation done (success or not) — now request 7.5ms interval */
+          UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_INTERV_UPDATE_ID, CFG_SEQ_PRIO_0);
           /* USER CODE END EVT_LE_PHY_UPDATE_COMPLETE */
         }
         break;
@@ -713,7 +719,39 @@ void BLEEVT_App_Notification(const hci_pckt *hci_pckt)
         }
         break;
       /* USER CODE BEGIN EVT_LE_META_EVENT_1 */
+      case HCI_LE_DATA_LENGTH_CHANGE_SUBEVT_CODE:
+        {
+          hci_le_data_length_change_event_rp0 *p_dle;
+          p_dle = (hci_le_data_length_change_event_rp0 *) p_meta_evt->data;
+          DT_INFO_MSG("DLE UPDATE: MaxTxOctets=%d MaxRxOctets=%d\n",
+                      p_dle->MaxTxOctets, p_dle->MaxRxOctets);
 
+          /* Step 2: once DLE is fully negotiated in both directions, request 2M PHY.
+           * Conn interval update follows from the PHY complete handler. */
+          if (p_dle->MaxTxOctets == 251 && p_dle->MaxRxOctets == 251)
+          {
+#if (CFG_BLE_CONTROLLER_2M_CODED_PHY_ENABLED == 1)
+            tBleStatus phy_status;
+            phy_status = hci_le_set_phy(bleAppContext.BleApplicationContext_legacy.connectionHandle,
+                                        0,
+                                        HCI_TX_PHYS_LE_2M_PREF,
+                                        HCI_RX_PHYS_LE_2M_PREF,
+                                        0);
+            if (phy_status != BLE_STATUS_SUCCESS)
+            {
+              DT_INFO_MSG("PHY CMD FAILED: 0x%02X\n", phy_status);
+              UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_INTERV_UPDATE_ID, CFG_SEQ_PRIO_0);
+            }
+            else
+            {
+              DT_INFO_MSG("PHY CMD OK, waiting...\n");
+            }
+#else
+            UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_INTERV_UPDATE_ID, CFG_SEQ_PRIO_0);
+#endif
+          }
+        }
+        break;
       /* USER CODE END EVT_LE_META_EVENT_1 */
 
       default:
@@ -1287,32 +1325,23 @@ static void LinkConfiguration(void)
 {
   tBleStatus status;
 
+  /* Step 1: DLE only. PHY update is triggered from HCI_LE_DATA_LENGTH_CHANGE_SUBEVT_CODE
+   * once both TX and RX are at 251 bytes — the LL rejects hci_le_set_phy() with
+   * Memory Capacity Exceeded (0x07) if a DLE procedure is still in progress. */
   status = hci_le_set_data_length(bleAppContext.BleApplicationContext_legacy.connectionHandle, 251, 2120);
   if (status != BLE_STATUS_SUCCESS)
   {
     APP_DBG_MSG("  Fail   : set data length command   : error code: 0x%02X\n", status);
+    DT_INFO_MSG("DLE CMD FAILED: 0x%02X\n", status);
+    /* DLE failed — go straight to connection interval update */
+    UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_INTERV_UPDATE_ID, CFG_SEQ_PRIO_0);
   }
   else
   {
     APP_DBG_MSG("  Success: set data length command\n");
+    DT_INFO_MSG("DLE CMD OK\n");
+    /* PHY update and conn interval update will be sequenced from DLE complete event */
   }
-
-#if (CFG_BLE_CONTROLLER_2M_CODED_PHY_ENABLED == 1)
-  APP_DBG_MSG("  Request 2M PHY\n");
-  status = hci_le_set_phy(bleAppContext.BleApplicationContext_legacy.connectionHandle, 0,
-                          HCI_TX_PHYS_LE_2M_PREF, HCI_RX_PHYS_LE_2M_PREF, 0);
-  if (status != BLE_STATUS_SUCCESS)
-  {
-    APP_DBG_MSG("  Fail   : hci_le_set_phy 2M: error code: 0x%02X\n", status);
-  }
-  else
-  {
-    APP_DBG_MSG("  Success: hci_le_set_phy 2M requested\n");
-    gap_cmd_resp_wait(); /* wait for HCI_LE_PHY_UPDATE_COMPLETE_SUBEVT_CODE */
-  }
-#endif
-
-  UTIL_SEQ_SetTask(1U << CFG_TASK_CONN_INTERV_UPDATE_ID, CFG_SEQ_PRIO_0);
 
   return;
 }
